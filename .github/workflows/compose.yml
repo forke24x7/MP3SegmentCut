@@ -11,8 +11,12 @@ jobs:
   smoke-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      COMPOSE_FILE: docker-compose.yaml:compose.build.yaml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Build and start
         run: docker compose up --build -d
       - name: Verify the app and encoder
@@ -26,3 +30,31 @@ jobs:
       - name: Stop
         if: always()
         run: docker compose down
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: publish-container
+      cancel-in-progress: true
+    env:
+      IMAGE: ghcr.io/forke24x7/mp3segmentcut
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build and publish container
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(sed -n 's/^LABEL org.opencontainers.image.version="\([0-9]*\.[0-9]*\.[0-9]*\)" .*/\1/p' Dockerfile)
+          test -n "$version"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker buildx create --use --driver docker-container
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            -t "$IMAGE:latest" -t "$IMAGE:$version" .

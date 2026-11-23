@@ -1,0 +1,4 @@
+services:
+  mp3segmentcut:
+    build: .
+    pull_policy: build

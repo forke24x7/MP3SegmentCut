@@ -100,11 +100,15 @@ function drawWave(width, height) {
   // Keep quieter passages visible by expanding the lower part of the scale.
   const scale = amplitude => Math.log1p(9 * Math.min(1, amplitude)) / Math.log(10);
   const graphHeight = height * .95;
-  canvasContext.fillStyle = '#ffffff52';
+  canvasContext.fillStyle = '#f7c7e42b';
   for (const level of [.1, .25, .5]) {
     canvasContext.fillRect(0, height - scale(level) * graphHeight, width, 1);
   }
-  canvasContext.fillStyle = '#70401e';
+  const gradient = canvasContext.createLinearGradient(0, height, 0, 0);
+  gradient.addColorStop(0, '#ff62b5');
+  gradient.addColorStop(.62, '#ff8bcc');
+  gradient.addColorStop(1, '#ffd3de');
+  canvasContext.fillStyle = gradient;
   const stride = span * buffer.sampleRate / width;
   for (let x = 0; x < width; x++) {
     const first = Math.floor(offset * buffer.sampleRate + x * stride);
@@ -139,7 +143,7 @@ function draw() {
 
   const ticks = ui.canvas.clientWidth < 500 ? 4 : 7;
   ui.ruler.replaceChildren();
-  canvasContext.fillStyle = mode === 'wave' ? '#233b502d' : '#c2b7e41c';
+  canvasContext.fillStyle = '#f7c7e426';
   for (let i = 0; i < ticks; i++) {
     const fraction = i / (ticks - 1);
     const label = document.createElement('span');
@@ -188,7 +192,6 @@ function scheduleSpectrum() {
 
 function setMode(next) {
   mode = next;
-  ui.plot.classList.toggle('plot-wave', mode === 'wave');
   ui.wave.setAttribute('aria-pressed', mode === 'wave');
   ui.spectrum.setAttribute('aria-pressed', mode === 'spectrum');
   ui.frequency.hidden = mode !== 'spectrum';

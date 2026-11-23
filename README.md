@@ -1,5 +1,7 @@
 # MP3 Segment Cut
 
+Version **0.2.0**
+
 Kleine MP3s im Browser schneiden und einzelne Segmente herunterladen. Die App öffnet und verarbeitet Audiodaten im Arbeitsspeicher des Tabs. Der Docker-Container liefert die Oberfläche aus und erhält keine Audiodateien.
 
 ## Starten

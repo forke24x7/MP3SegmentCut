@@ -5,6 +5,7 @@ RUN npm pack lamejs@1.2.1 --ignore-scripts --quiet \
     && tar -xzf lamejs-1.2.1.tgz
 
 FROM nginx:stable-alpine
+LABEL org.opencontainers.image.version="0.2.0"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY public/ /usr/share/nginx/html/
 COPY --from=encoder /build/package/lame.min.js /build/package/LICENSE /usr/share/nginx/html/vendor/

@@ -21,8 +21,8 @@ let loadId = 0;
 let mode = 'wave';
 let offset = 0;
 let span = 0;
-let start = 0;
-let end = 0;
+let start = null;
+let end = null;
 let cursor = 0;
 let playback;
 let playId = 0;
@@ -43,39 +43,63 @@ function timeLimit() {
 
 function showFields() {
   ui.start.max = ui.end.max = timeLimit().toFixed(3);
-  ui.start.value = start.toFixed(3);
-  ui.end.value = end.toFixed(3);
-  ui.length.textContent = time(end - start);
+  ui.start.value = start?.toFixed(3) ?? '';
+  ui.end.value = end?.toFixed(3) ?? '';
+  refreshSelection();
+}
+
+function refreshSelection() {
+  ui.length.textContent = validSelection() ? time(end - start) : '–';
   updateButtons();
+  overlays();
 }
 
 function validSelection() {
-  return ui.start.validity.valid && ui.end.validity.valid && end > start;
+  return start !== null && end !== null && end > start;
 }
 
 function updateButtons() {
+  ui.clearStart.disabled = start === null;
+  ui.clearEnd.disabled = end === null;
   ui.export.disabled = !!encodeWorker || !validSelection();
   ui.play.textContent = playback ? '■ Anhalten' : '▶ Abspielen';
   ui.export.textContent = encodeWorker ? 'MP3 wird erstellt …' : 'MP3 speichern';
 }
 
+function markerTime(value) {
+  return clamp(Math.round(value * 1000) / 1000, 0, timeLimit());
+}
+
+function setMark(mark, value) {
+  if (mark === 'start') start = value;
+  else end = value;
+}
+
 function setSelection(a, b) {
-  const precision = value => clamp(Math.round(value * 1000) / 1000, 0, timeLimit());
-  start = precision(Math.min(a, b));
-  end = precision(Math.max(a, b));
+  start = a === null ? null : markerTime(a);
+  end = b === null ? null : markerTime(b);
   showFields();
-  overlays();
+}
+
+function showMarker(element, value) {
+  if (value === null) {
+    element.hidden = true;
+    return;
+  }
+  const position = (value - offset) / span;
+  element.hidden = position < 0 || position > 1;
+  element.style.left = `min(${position * 100}%, calc(100% - 2px))`;
 }
 
 function overlays() {
   if (!buffer) return;
   const left = (start - offset) / span;
   const right = (end - offset) / span;
-  ui.selection.hidden = end <= start || right <= 0 || left >= 1;
+  ui.selection.hidden = !validSelection() || right <= 0 || left >= 1;
   ui.selection.style.left = `${clamp(left, 0, 1) * 100}%`;
   ui.selection.style.right = `${(1 - clamp(right, 0, 1)) * 100}%`;
-  ui.selection.classList.toggle('clipped-start', left < 0);
-  ui.selection.classList.toggle('clipped-end', right > 1);
+  showMarker(ui.markStart, start);
+  showMarker(ui.markEnd, end);
   const position = (cursor - offset) / span;
   ui.cursor.hidden = position < 0 || position > 1;
   ui.cursor.style.left = `min(${position * 100}%, calc(100% - 2px))`;
@@ -319,7 +343,7 @@ function showEditor(audio, name, detail) {
   ui.empty.hidden = true;
   ui.editor.hidden = false;
   cursor = 0;
-  setSelection(0, 0);
+  setSelection(null, null);
   setView(0, buffer.duration);
   setMode('wave');
   status();
@@ -429,11 +453,16 @@ function pointerTime(event) {
 }
 
 function moveSelection(event) {
+  if (Math.abs(event.clientX - drag.x) >= 3) drag.moved = true;
+  if (!drag.moved) return;
   const point = pointerTime(event);
-  if (drag.edge) setSelection(drag.anchor, point);
-  else if (Math.abs(event.clientX - drag.x) >= 3 || drag.moved) {
-    drag.moved = true;
-    setSelection(drag.anchor, point);
+  const mark = drag.edge ?? drag.missing;
+  if (mark && drag.resizeAnchor === null) {
+    setMark(mark, markerTime(point));
+    showFields();
+  } else {
+    const fixed = drag.resizeAnchor ?? drag.anchor;
+    setSelection(Math.min(fixed, point), Math.max(fixed, point));
   }
 }
 
@@ -441,13 +470,20 @@ ui.plot.addEventListener('pointerdown', event => {
   if (!buffer || drag || event.button !== 0) return;
   const point = pointerTime(event);
   const tolerance = 7 * span / ui.plot.clientWidth;
-  const nearStart = end > start && start >= offset && Math.abs(start - point) <= tolerance;
-  const nearEnd = end > start && end <= offset + span && Math.abs(end - point) <= tolerance;
-  const edge = nearStart || nearEnd;
+  const near = value => value !== null && value >= offset && value <= offset + span &&
+    Math.abs(value - point) <= tolerance;
+  const nearStart = near(start);
+  const nearEnd = near(end);
+  const edge = nearStart && (!nearEnd || Math.abs(start - point) <= Math.abs(end - point))
+    ? 'start' : nearEnd ? 'end' : null;
   drag = {
-    id: event.pointerId, edge, x: event.clientX, moved: false,
-    anchor: nearStart && (!nearEnd || Math.abs(start - point) < Math.abs(end - point))
-      ? end : nearEnd ? start : point
+    id: event.pointerId,
+    edge,
+    resizeAnchor: edge && validSelection() ? (edge === 'start' ? end : start) : null,
+    missing: start === null && end !== null ? 'start' : end === null && start !== null ? 'end' : null,
+    x: event.clientX,
+    moved: false,
+    anchor: point
   };
   ui.plot.setPointerCapture(event.pointerId);
 });
@@ -457,7 +493,12 @@ ui.plot.addEventListener('pointermove', event => {
 ui.plot.addEventListener('pointerup', event => {
   if (drag?.id !== event.pointerId) return;
   moveSelection(event);
-  const position = drag.moved || drag.edge ? start : pointerTime(event);
+  const point = pointerTime(event);
+  if (!drag.moved && !drag.edge && drag.missing) {
+    setMark(drag.missing, markerTime(point));
+    showFields();
+  }
+  const position = (drag.moved || drag.missing) && validSelection() ? start : point;
   drag = undefined;
   if (playback) syncLoop(position);
   else {
@@ -476,17 +517,21 @@ ui.plot.addEventListener('wheel', event => {
   zoom(event.deltaY < 0 ? .75 : 1 / .75, pointerTime(event));
 }, { passive: false });
 
-for (const field of [ui.start, ui.end]) {
-  field.required = true;
+for (const [mark, clear] of [['start', ui.clearStart], ['end', ui.clearEnd]]) {
+  const field = ui[mark];
   field.addEventListener('input', () => {
-    if (field.validity.valid) {
-      if (field === ui.start) start = field.valueAsNumber;
-      else end = field.valueAsNumber;
-    }
-    ui.length.textContent = validSelection() ? time(end - start) : '–';
-    overlays();
-    updateButtons();
+    setMark(mark, field.validity.valid && field.value !== '' ? field.valueAsNumber : null);
+    refreshSelection();
     syncLoop();
+  });
+  clear.addEventListener('click', () => {
+    const position = currentPosition();
+    const hadSelection = validSelection();
+    setMark(mark, null);
+    field.value = '';
+    refreshSelection();
+    if (hadSelection) syncLoop(position);
+    field.focus();
   });
 }
 

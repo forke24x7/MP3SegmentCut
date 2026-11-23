@@ -102,10 +102,9 @@ h2 { font-size: 1.125rem; }
   cursor: crosshair; touch-action: none; user-select: none;
 }
 canvas { display: block; width: 100%; height: 100%; }
-.selection, .cursor { position: absolute; top: 0; bottom: 0; pointer-events: none; }
-.selection { background: #63ebdf20; border-inline: 2px solid var(--mint); }
-.selection.clipped-start { border-left-color: transparent; }
-.selection.clipped-end { border-right-color: transparent; }
+.selection, .mark-line, .cursor { position: absolute; top: 0; bottom: 0; pointer-events: none; }
+.selection { background: #63ebdf20; }
+.mark-line { width: 2px; background: var(--mint); }
 .cursor { width: 2px; background: var(--peach); box-shadow: 0 0 0 1px #24121ca0; }
 .frequency { position: absolute; inset: 5px 6px 5px auto; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
 .frequency span { background: #141418dd; padding: 0 .3rem; border-radius: 4px; color: #f6e4f0; font: .75rem/1.5 var(--mono); }
@@ -119,6 +118,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .cut { border-top: 1px solid var(--border); background: #2a222c; border-radius: 0 0 13px 13px; }
 .cut p { font-size: .875rem; }
 .cut-controls { display: flex; align-items: end; gap: .65rem; flex-wrap: wrap; }
+.cut-mark { display: flex; align-items: end; gap: .4rem; }
+.cut-mark button { font-size: .875rem; padding-inline: .65rem; }
 .cut-controls label, .length { display: grid; gap: .25rem; font-size: .875rem; color: var(--muted); }
 .cut-controls input, .length output {
   display: flex; align-items: center; width: 105px; height: 42px; padding: .45rem .55rem;

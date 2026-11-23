@@ -47,6 +47,8 @@
         <div id="plot" class="plot">
           <canvas id="canvas" aria-hidden="true"></canvas>
           <div id="selection" class="selection" hidden></div>
+          <div id="markStart" class="mark-line" hidden></div>
+          <div id="markEnd" class="mark-line" hidden></div>
           <div id="cursor" class="cursor" hidden></div>
           <div class="frequency" id="frequency" hidden></div>
           <span class="analysis" id="analysis" hidden>Spektrogramm wird berechnet …</span>
@@ -61,8 +63,14 @@
       <div class="cut">
         <div><h2>Segment</h2><p>In der Grafik ziehen oder Zeiten in Sekunden eingeben.</p></div>
         <div class="cut-controls">
-          <label>Start (s)<input id="start" type="number" inputmode="decimal" min="0" step="0.001"></label>
-          <label>Ende (s)<input id="end" type="number" inputmode="decimal" min="0" step="0.001"></label>
+          <div class="cut-mark">
+            <label>Start (s)<input id="start" type="number" inputmode="decimal" min="0" step="0.001"></label>
+            <button id="clearStart" class="secondary" disabled>In löschen</button>
+          </div>
+          <div class="cut-mark">
+            <label>Ende (s)<input id="end" type="number" inputmode="decimal" min="0" step="0.001"></label>
+            <button id="clearEnd" class="secondary" disabled>Out löschen</button>
+          </div>
           <div class="length"><span>Länge</span><output id="length"></output></div>
           <button id="export" class="primary">MP3 speichern</button>
         </div>
@@ -70,6 +78,6 @@
     </section>
     <p id="status" class="status" role="status"></p>
   </main>
-  <footer class="app-footer">Version 0.2.4</footer>
+  <footer class="app-footer">Version 0.2.5</footer>
 </body>
 </html>

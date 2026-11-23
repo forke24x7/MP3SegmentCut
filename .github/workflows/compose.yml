@@ -21,8 +21,8 @@ jobs:
         run: docker compose up --build -d
       - name: Verify the app and encoder
         run: |
-          curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8080/ | grep -F 'MP3 Segment Cut'
-          curl -fsS http://localhost:8080/vendor/lame.min.js -o /tmp/lame.min.js
+          curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8842/ | grep -F 'MP3 Segment Cut'
+          curl -fsS http://localhost:8842/vendor/lame.min.js -o /tmp/lame.min.js
           test -s /tmp/lame.min.js
       - name: Compose logs
         if: failure()

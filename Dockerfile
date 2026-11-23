@@ -5,7 +5,7 @@ RUN npm pack lamejs@1.2.1 --ignore-scripts --quiet \
     && tar -xzf lamejs-1.2.1.tgz
 
 FROM nginx:stable-alpine
-LABEL org.opencontainers.image.version="0.2.1" \
+LABEL org.opencontainers.image.version="0.2.2" \
       org.opencontainers.image.source="https://github.com/forke24x7/MP3SegmentCut" \
       org.opencontainers.image.licenses="MIT"
 COPY nginx.conf /etc/nginx/conf.d/default.conf

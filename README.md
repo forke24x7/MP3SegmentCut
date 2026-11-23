@@ -1,6 +1,6 @@
 # MP3 Segment Cut
 
-Version **0.2.1**
+Version **0.2.2**
 
 Kleine MP3s im Browser schneiden und einzelne Segmente herunterladen. Die App öffnet und verarbeitet Audiodaten im Arbeitsspeicher des Tabs. Der Docker-Container liefert die Oberfläche aus und erhält keine Audiodateien.
 
@@ -14,7 +14,7 @@ Lokal reicht die `docker-compose.yaml`. Im selben Verzeichnis ausführen.
 docker compose up -d
 ```
 
-Die App ist unter [localhost:8080](http://localhost:8080) erreichbar. Für Zugriff aus dem LAN `BIND_ADDRESS=0.0.0.0` als Umgebungsvariable im Stack setzen und die IP des Docker-Hosts öffnen. Der Port lässt sich mit `PORT` ändern.
+Die App ist unter [localhost:8842](http://localhost:8842) erreichbar. Für Zugriff aus dem LAN `BIND_ADDRESS=0.0.0.0` als Umgebungsvariable im Stack setzen und die IP des Docker-Hosts öffnen. Der Port lässt sich mit `PORT` ändern.
 
 Für einen lokalen Build aus dem geklonten Quellcode beide Dateien verwenden.
 

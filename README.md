@@ -1,6 +1,6 @@
 # MP3 Segment Cut
 
-Version **0.2.3**
+Version **0.2.4**
 
 Kleine MP3s im Browser schneiden und einzelne Segmente herunterladen. Die App öffnet und verarbeitet Audiodaten im Arbeitsspeicher des Tabs. Der Docker-Container liefert die Oberfläche aus und erhält keine Audiodateien.
 
@@ -24,7 +24,7 @@ docker compose -f docker-compose.yaml -f compose.build.yaml up --build -d
 
 ## Schneiden
 
-MP3 öffnen oder hineinziehen (Mono oder Stereo, bis 25 MB und 15 Minuten). Die **Pegelkurve** macht leise und laute Stellen sichtbar. Das **Spektrogramm** zeigt die Frequenzanteile. Mit **+** und **−** zoomen. In der Grafik einen Bereich aufziehen oder Start und Ende in Sekunden eingeben. Danach **Auswahl anhören** und **MP3 speichern** wählen.
+MP3 öffnen oder hineinziehen (Mono oder Stereo, bis 25 MB und 15 Minuten). Die **Pegelkurve** macht leise und laute Stellen sichtbar. Das **Spektrogramm** zeigt die Frequenzanteile. Mit **+** und **−** zoomen. In der Grafik einen Bereich aufziehen oder Start und Ende in Sekunden eingeben. **Abspielen** wiederholt die Auswahl oder die ganze Datei, wenn kein Segment markiert ist. Mit **Anhalten** stoppst du die Schleife und mit **MP3 speichern** exportierst du das Segment.
 
 Der Export codiert das Segment mit 192 kbit/s bei 44,1 kHz neu. Durch MP3-Encoderverzögerung und Auffüllung kann die Datei geringfügig länger ausfallen.
 

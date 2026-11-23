@@ -55,9 +55,7 @@ function validSelection() {
 
 function updateButtons() {
   ui.export.disabled = !!encodeWorker || !validSelection();
-  ui.preview.disabled = !validSelection();
   ui.play.textContent = playback ? '■ Anhalten' : '▶ Abspielen';
-  ui.preview.textContent = playback?.selection ? 'Vorschau anhalten' : 'Auswahl anhören';
   ui.export.textContent = encodeWorker ? 'MP3 wird erstellt …' : 'MP3 speichern';
 }
 
@@ -218,54 +216,26 @@ function zoom(factor, anchor) {
 }
 
 function currentPosition() {
-  return playback ? Math.min(playback.end, playback.start + context.currentTime - playback.at) : cursor;
+  if (!playback) return cursor;
+  const { from, to, at, origin } = playback;
+  return from + (origin - from + context.currentTime - at) % (to - from);
 }
 
-function pause() {
-  playId++;
-  if (!playback) return;
-  cursor = currentPosition();
-  const source = playback.source;
-  playback = undefined;
-  source.onended = null;
-  source.stop();
-  source.disconnect();
-  overlays();
-  updateButtons();
+function loopRange() {
+  return validSelection() ? { from: start, to: end } : { from: 0, to: buffer.duration };
 }
 
-async function play(selection = false) {
-  if (playback && playback.selection === selection) {
-    pause();
-    return;
-  }
-  pause();
-  const id = ++playId;
-  const audio = buffer;
-  try {
-    await context.resume();
-  } catch {
-    status('Audio konnte im Browser nicht gestartet werden.', true);
-    return;
-  }
-  if (id !== playId || buffer !== audio) return;
-  if (selection && !validSelection()) return;
-  const from = selection ? start : cursor >= buffer.duration - .001 ? 0 : cursor;
-  const to = selection ? end : buffer.duration;
+function startLoop({ from, to }, position) {
+  const origin = position >= from && position < to ? position : from;
   const source = context.createBufferSource();
   source.buffer = buffer;
+  source.loop = true;
+  source.loopStart = from;
+  source.loopEnd = to;
   source.connect(context.destination);
-  playback = { source, start: from, end: to, at: context.currentTime, selection };
-  cursor = from;
-  source.start(0, from, to - from);
-  source.onended = () => {
-    if (playback?.source !== source) return;
-    playback = undefined;
-    source.disconnect();
-    cursor = to;
-    overlays();
-    updateButtons();
-  };
+  const at = context.currentTime;
+  source.start(at, origin);
+  playback = { source, from, to, origin, at };
   updateButtons();
 
   function follow() {
@@ -275,6 +245,47 @@ async function play(selection = false) {
     requestAnimationFrame(follow);
   }
   follow();
+}
+
+function stopLoop() {
+  const { source } = playback;
+  playback = undefined;
+  source.stop();
+  source.disconnect();
+}
+
+function pause() {
+  playId++;
+  if (!playback) return;
+  cursor = currentPosition();
+  stopLoop();
+  overlays();
+  updateButtons();
+}
+
+function syncLoop(position) {
+  if (!playback) return;
+  const range = loopRange();
+  if (position === undefined && range.from === playback.from && range.to === playback.to) return;
+  stopLoop();
+  startLoop(range, position ?? range.from);
+}
+
+async function play() {
+  if (playback) {
+    pause();
+    return;
+  }
+  const id = ++playId;
+  const audio = buffer;
+  try {
+    await context.resume();
+  } catch {
+    if (id === playId) status('Audio konnte im Browser nicht gestartet werden.', true);
+    return;
+  }
+  if (id !== playId || buffer !== audio) return;
+  startLoop(loopRange(), cursor);
 }
 
 function disposeAudio() {
@@ -365,7 +376,7 @@ function openDemo() {
     }
     showEditor(audio, 'Demo.mp3', 'Beispielaudio');
     setSelection(3, 6);
-    void play(true);
+    void play();
   } catch {
     status('Der Browser konnte das Beispielaudio nicht öffnen.', true);
   }
@@ -428,7 +439,6 @@ function moveSelection(event) {
 
 ui.plot.addEventListener('pointerdown', event => {
   if (!buffer || drag || event.button !== 0) return;
-  pause();
   const point = pointerTime(event);
   const tolerance = 7 * span / ui.plot.clientWidth;
   const nearStart = end > start && start >= offset && Math.abs(start - point) <= tolerance;
@@ -447,11 +457,19 @@ ui.plot.addEventListener('pointermove', event => {
 ui.plot.addEventListener('pointerup', event => {
   if (drag?.id !== event.pointerId) return;
   moveSelection(event);
-  cursor = drag.moved ? start : pointerTime(event);
+  const position = drag.moved || drag.edge ? start : pointerTime(event);
   drag = undefined;
-  overlays();
+  if (playback) syncLoop(position);
+  else {
+    cursor = position;
+    overlays();
+  }
 });
-ui.plot.addEventListener('lostpointercapture', () => { drag = undefined; });
+ui.plot.addEventListener('lostpointercapture', () => {
+  if (!drag) return;
+  drag = undefined;
+  syncLoop();
+});
 ui.plot.addEventListener('wheel', event => {
   if (!buffer || !event.shiftKey) return;
   event.preventDefault();
@@ -468,6 +486,7 @@ for (const field of [ui.start, ui.end]) {
     ui.length.textContent = validSelection() ? time(end - start) : '–';
     overlays();
     updateButtons();
+    syncLoop();
   });
 }
 
@@ -494,7 +513,6 @@ ui.out.onclick = () => zoom(2, zoomAnchor());
 ui.fit.onclick = () => setView(0, buffer.duration);
 ui.pan.oninput = () => setView(ui.pan.valueAsNumber);
 ui.play.onclick = () => void play();
-ui.preview.onclick = () => void play(true);
 ui.export.onclick = exportMp3;
 window.addEventListener('keydown', event => {
   if (!buffer || event.code !== 'Space' || event.repeat ||

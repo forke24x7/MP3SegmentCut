@@ -3,5 +3,5 @@ services:
     image: ghcr.io/forke24x7/mp3segmentcut:latest
     pull_policy: always
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8842}:80"
+      - "${BIND_ADDRESS:-0.0.0.0}:${PORT:-8842}:80"
     restart: unless-stopped

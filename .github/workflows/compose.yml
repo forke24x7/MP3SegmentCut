@@ -21,7 +21,9 @@ jobs:
         run: docker compose up --build -d
       - name: Verify the app and encoder
         run: |
-          curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8842/ | grep -F 'MP3 Segment Cut'
+          host_ip=$(ip -4 route get 1.1.1.1 | awk '{for (i=1;i<NF;i++) if ($i=="src") {print $(i+1); exit}}')
+          test -n "$host_ip"
+          curl --noproxy '*' -fsS --retry 10 --retry-connrefused --retry-delay 1 "http://$host_ip:8842/" | grep -F 'MP3 Segment Cut'
           curl -fsS http://localhost:8842/vendor/lame.min.js -o /tmp/lame.min.js
           test -s /tmp/lame.min.js
       - name: Compose logs

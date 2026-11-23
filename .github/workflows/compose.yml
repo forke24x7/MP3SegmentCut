@@ -1,0 +1,28 @@
+name: Docker Compose
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start
+        run: docker compose up --build -d
+      - name: Verify the app and encoder
+        run: |
+          curl -fsS --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8080/ | grep -F 'MP3 Segment Cut'
+          curl -fsS http://localhost:8080/vendor/lame.min.js -o /tmp/lame.min.js
+          test -s /tmp/lame.min.js
+      - name: Compose logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop
+        if: always()
+        run: docker compose down
